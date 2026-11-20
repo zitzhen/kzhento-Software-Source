@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Reject commits whose message does not carry a DCO Signed-off-by trailer.
+set -euo pipefail
+
+message_file="$1"
+
+trailers="$(git interpret-trailers --parse "$message_file")"
+if ! printf '%s\n' "$trailers" | grep -q '^Signed-off-by: .'; then
+  echo "Error: commit message is missing a Signed-off-by trailer (DCO requirement)." >&2
+  echo "Use 'git commit -s' or enable the versioned hooks in .githooks/." >&2
+  exit 1
+fi
