@@ -80,7 +80,7 @@ The S3 endpoint is derived as `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
 ./scripts/build-deb.sh https://github.com/zitzhen/patchsplit /tmp/debs
 ```
 
-Local builds need `git`, `devscripts`, `dpkg-dev`, and `sudo` for installing build dependencies.
+Local builds need `git`, `devscripts`, `equivs`, `dpkg-dev`, and `sudo` for installing build dependencies.
 
 ## DCO and Git hooks
 
