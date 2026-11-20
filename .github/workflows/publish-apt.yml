@@ -1,0 +1,116 @@
+name: Publish apt repository to R2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-apt-r2
+  cancel-in-progress: false
+
+env:
+  APT_SUITE: stable
+  APT_COMPONENT: main
+  APT_ARCH: amd64
+
+jobs:
+  prepare:
+    name: Parse Software.list
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.parse.outputs.packages }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build the package matrix
+        id: parse
+        run: |
+          packages="$(./scripts/parse-software-list.sh Software.list)"
+          echo "packages=$packages" >> "$GITHUB_OUTPUT"
+          echo "Build matrix: $packages"
+
+  build:
+    name: Build ${{ matrix.url }}
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.prepare.outputs.packages) }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq devscripts equivs dpkg-dev
+
+      - name: Build the binary package
+        run: ./scripts/build-deb.sh "${{ matrix.url }}" "$RUNNER_TEMP/debs"
+
+      - name: Upload the binary package
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ strategy.job-index }}
+          path: ${{ runner.temp }}/debs/*.deb
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Sign and publish to R2
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      APT_GPG_KEY_ID: ${{ vars.APT_GPG_KEY_ID || '3B310141DFDBDE77A802C0627DFBD414F81DC0BB' }}
+      APT_REPO_URL: ${{ vars.APT_REPO_URL || 'https://apt.zitzhen.cn' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install publishing tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq apt-utils dpkg-dev gnupg
+
+      - name: Download built packages
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/packages
+          merge-multiple: true
+
+      - name: Import the signing key
+        env:
+          APT_GPG_PRIVATE_KEY: ${{ secrets.APT_GPG_PRIVATE_KEY }}
+        run: |
+          if [[ -z "$APT_GPG_PRIVATE_KEY" ]]; then
+            echo "::error::APT_GPG_PRIVATE_KEY secret is required"
+            exit 1
+          fi
+          printf '%s\n' "$APT_GPG_PRIVATE_KEY" | gpg --batch --import
+          gpg --batch --list-secret-keys "$APT_GPG_KEY_ID"
+
+      - name: Generate and sign repository metadata
+        env:
+          APT_GPG_PASSPHRASE: ${{ secrets.APT_GPG_PASSPHRASE }}
+        run: ./scripts/publish-repo.sh "$RUNNER_TEMP/packages" "$RUNNER_TEMP/repo" "$APT_GPG_KEY_ID"
+
+      - name: Sync the repository to Cloudflare R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_REGION: auto
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          : "${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID is required}"
+          : "${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required}"
+          : "${R2_ACCOUNT_ID:?R2_ACCOUNT_ID is required}"
+          : "${R2_BUCKET:?R2_BUCKET is required}"
+          endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          aws s3 sync "$RUNNER_TEMP/repo" "s3://${R2_BUCKET}" \
+            --endpoint-url "$endpoint" --region auto --no-progress
+          echo "Repository published to $APT_REPO_URL"
