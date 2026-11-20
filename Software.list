@@ -1,12 +1,6 @@
 # ---------------------------------------------------------------------------
 # Copyright (C) 2026 ZIT STUDIO
 # SPDX-License-Identifier: AGPL-3.0-only
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
-# Author: Oliver Lin <oliver@Liuxiaozhenn.dev>
-# Maintainer: Oliver Lin <oliver@liuxiaozhen.dev>
-# ---------------------------------------------------------------------------
 
 # Software manifest for the apt repository published at https://apt.zitzhen.cn
 # Format: one HTTPS GitHub repository URL per line.
@@ -14,5 +8,11 @@
 # Every listed repository must contain a debian/ directory so that the workflow
 # can build an amd64 .deb package with dpkg-buildpackage.
 # Duplicate URLs are ignored.
+# ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Author: Oliver Lin <oliver@Liuxiaozhenn.dev>
+# Maintainer: Oliver Lin <oliver@liuxiaozhen.dev>
 https://github.com/zitzhen/patchsplit
+# ---------------------------------------------------------------------------
+
