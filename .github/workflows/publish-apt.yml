@@ -65,7 +65,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     env:
-      APT_GPG_KEY_ID: ${{ vars.APT_GPG_KEY_ID || '3B310141DFDBDE77A802C0627DFBD414F81DC0BB' }}
+      APT_GPG_KEY_ID: ${{ vars.APT_GPG_KEY_ID || '36A6C7EDED83B296BBBC34F874F53477AD7D8AE5' }}
       APT_REPO_URL: ${{ vars.APT_REPO_URL || 'https://apt.kzhento.zitzhen.cn' }}
     steps:
       - name: Check out repository
