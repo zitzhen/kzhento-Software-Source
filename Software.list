@@ -2,7 +2,7 @@
 # Copyright (C) 2026 ZIT STUDIO
 # SPDX-License-Identifier: AGPL-3.0-only
 
-# Software manifest for the apt repository published at https://apt.zitzhen.cn
+# Software manifest for KzhenTo's apt repository (fork of zitzhen/zhento-Software-Source)
 # Format: one HTTPS GitHub repository URL per line.
 # Blank lines and lines starting with '#' are ignored.
 # Every listed repository must contain a debian/ directory so that the workflow

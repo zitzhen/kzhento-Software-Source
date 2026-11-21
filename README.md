@@ -1,13 +1,20 @@
-# zhento-Software-Source
+# kzhento-Software-Source
 
-Debian/Ubuntu apt repository hosted on Cloudflare R2 and served at
-`https://apt.zitzhen.cn`.
+This repository is a fork of
+[zitzhen/zhento-Software-Source](https://github.com/zitzhen/zhento-Software-Source),
+maintained for **KzhenTo**. It is the source of truth for the Debian/Ubuntu apt
+repository used by KzhenTo, hosted on Cloudflare R2.
 
-This repository is the source of truth for that apt repository. `Software.list`
-at the root lists upstream GitHub projects. A manually triggered GitHub Actions
-workflow clones every listed project, builds an `amd64` `.deb` package from its
-`debian/` directory, generates the apt indexes, signs them with a dedicated GPG
-key, and syncs the result to the R2 bucket behind `apt.zitzhen.cn`.
+`Software.list` at the root lists upstream GitHub projects. A manually
+triggered GitHub Actions workflow clones every listed project, builds an
+`amd64` `.deb` package from its `debian/` directory, generates the apt indexes,
+signs them with a dedicated GPG key, and syncs the result to the R2 bucket
+behind the deployment's apt endpoint.
+
+The KzhenTo apt endpoint is `https://apt.kzhento.zitzhen.cn`. The signing key
+below is the default inherited from upstream; set `APT_GPG_KEY_ID` and
+`APT_GPG_PRIVATE_KEY` to the values used by your deployment if it differs (see
+[Repository configuration](#repository-configuration)).
 
 ## How it works
 
@@ -31,17 +38,20 @@ apt-key.gpg
 
 ## Using the repository
 
-```bash
-curl -fsSL https://apt.zitzhen.cn/apt-key.asc \
-  | sudo gpg --dearmor -o /usr/share/keyrings/zhento-apt.gpg
+Use the KzhenTo endpoint below. Replace the fingerprint if your deployment uses
+a different signing key:
 
-echo "deb [signed-by=/usr/share/keyrings/zhento-apt.gpg arch=amd64] https://apt.zitzhen.cn stable main" \
-  | sudo tee /etc/apt/sources.list.d/zhento.list
+```bash
+curl -fsSL https://apt.kzhento.zitzhen.cn/apt-key.asc \
+  | sudo gpg --dearmor -o /usr/share/keyrings/kzhento-apt.gpg
+
+echo "deb [signed-by=/usr/share/keyrings/kzhento-apt.gpg arch=amd64] https://apt.kzhento.zitzhen.cn stable main" \
+  | sudo tee /etc/apt/sources.list.d/kzhento.list
 
 sudo apt update
 ```
 
-The repository signing key fingerprint is `3B310141DFDBDE77A802C0627DFBD414F81DC0BB`.
+The inherited signing key fingerprint is `3B310141DFDBDE77A802C0627DFBD414F81DC0BB`.
 
 ## Adding a package
 
@@ -60,16 +70,16 @@ Add the following secrets and variables under **Settings -> Secrets and variable
 | `R2_ACCOUNT_ID` | Cloudflare account ID used to derive the S3 endpoint. |
 | `R2_ACCESS_KEY_ID` | Access Key ID of the R2 API token. |
 | `R2_SECRET_ACCESS_KEY` | Secret Access Key of the R2 API token. |
-| `R2_BUCKET` | Name of the bucket bound to `apt.zitzhen.cn`. |
-| `APT_GPG_PRIVATE_KEY` | ASCII-armored private key `3B310141DFDBDE77A802C0627DFBD414F81DC0BB`, from `gpg --armor --export-secret-keys 3B310141DFDBDE77A802C0627DFBD414F81DC0BB`. |
+| `R2_BUCKET` | Name of the bucket serving the KzhenTo apt repository. |
+| `APT_GPG_PRIVATE_KEY` | ASCII-armored private key used to sign the indexes. The inherited default is `3B310141DFDBDE77A802C0627DFBD414F81DC0BB`, exported with `gpg --armor --export-secret-keys 3B310141DFDBDE77A802C0627DFBD414F81DC0BB`. |
 | `APT_GPG_PASSPHRASE` | Passphrase for the private key; leave empty if the key has no passphrase. |
 
 ### Variables
 
 | Name | Description |
 | --- | --- |
-| `APT_GPG_KEY_ID` | Signing key fingerprint, `3B310141DFDBDE77A802C0627DFBD414F81DC0BB`. |
-| `APT_REPO_URL` | Public repository URL, `https://apt.zitzhen.cn`, used in workflow logs. |
+| `APT_GPG_KEY_ID` | Signing key fingerprint used by the KzhenTo deployment; inherited default: `3B310141DFDBDE77A802C0627DFBD414F81DC0BB`. |
+| `APT_REPO_URL` | Public apt endpoint used in workflow logs; default: `https://apt.kzhento.zitzhen.cn`. |
 
 The S3 endpoint is derived as `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`.
 
